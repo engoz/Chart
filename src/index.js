@@ -1,7 +1,7 @@
 import OurDataFeed from './app';
 import * as Helper from './helper';
 
-var sembol = 'GBP/USD'
+var sembol = 'USD/TRY';
 
 function initOnReady() {
 

@@ -13,8 +13,20 @@ export default {
 						return []
 					}
 					
-				//	var date = new Date();
-				//	var yesterday = date.setDate(date.getDate() - 1);	
+					var date = new Date();
+					var yesterday = date.setDate(date.getDate() - 1);	
+					var dayCount = 1440;
+					data = [];
+					for (let i=1; i<=dayCount; i++){
+						var d = {time: Helper.barTime(yesterday+(i*60000)),
+						low: Math.random()*1+5,
+						high: Math.random()*1+6,
+						open: Math.random()*2+5,
+						close: Math.random()*2+5,
+						volume: 100
+						}
+						data.push(d);
+					}
 					if (data.length > 0) {
 						var bars = data.map(bar => {
 						//	if (bar.time >= from && bar.time < to) {
