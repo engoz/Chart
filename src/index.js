@@ -1,0 +1,47 @@
+import OurDataFeed from './app';
+import * as Helper from './helper';
+
+var sembol = 'GBP/USD'
+
+function initOnReady() {
+
+    Helper.getOurExchanges();
+
+    var widget = window.tvWidget = new TradingView.widget({
+        // debug: true, // uncomment this line to see Library errors and warnings in the console
+        fullscreen: true,
+        autosize: true,
+        symbol: sembol,
+        interval: '1',
+        container_id: "tv_chart_container",
+        debug: false,
+        //	BEWARE: no trailing slash is expected in feed URL
+        //datafeed: new Datafeeds.UDFCompatibleDatafeed("https://demo_feed.tradingview.com"),
+        datafeed: new OurDataFeed(),
+        library_path: "charting_library/",
+        locale: Helper.getParameterByName('lang') || "en",
+        timezone: 'Europe/Istanbul',
+        disabled_features: ["use_localstorage_for_settings"],
+        enabled_features: ['study_templates'],
+        supported_resolutions: ["1", "3", "5", "15", "30", "60", "120", "240", "D"],
+        //charts_storage_url: 'http://saveload.tradingview.com',
+        //charts_storage_api_version: "1.1",
+        client_id: 'tradingview.com',
+        user_id: 'public_user_id',
+        studiesOverrides: {},
+  //      locale: "tr", denemek lazim
+        overrides: {
+            // "mainSeriesProperties.showCountdown": true,
+            "paneProperties.background": "#131722",
+            "paneProperties.vertGridProperties.color": "#363c4e",
+            "paneProperties.horzGridProperties.color": "#363c4e",
+            "symbolWatermarkProperties.transparency": 90,
+            "scalesProperties.textColor": "#AAA",
+            "mainSeriesProperties.candleStyle.wickUpColor": '#336854',
+            "mainSeriesProperties.candleStyle.wickDownColor": '#7f323f',
+        },
+        theme: Helper.getParameterByName('theme'),
+    });
+};
+
+window.addEventListener('DOMContentLoaded', initOnReady, true);
