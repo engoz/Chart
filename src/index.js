@@ -14,7 +14,7 @@ function initOnReady() {
         symbol: sembol,
         interval: '15',
         container_id: "tv_chart_container",
-        debug: true,
+        debug: false,
         //	BEWARE: no trailing slash is expected in feed URL
         //datafeed: new Datafeeds.UDFCompatibleDatafeed("https://demo_feed.tradingview.com"),
         datafeed: new OurDataFeed(),

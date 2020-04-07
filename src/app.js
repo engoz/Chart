@@ -45,7 +45,7 @@ export default class OurDataFeed {
             minmov2: 0,
             //    fractional: false,
             has_intraday: true,
-            intraday_multipliers: ['1','60'],
+            //intraday_multipliers: ['1','60'],
             supported_resolution: Helper.supportedResolutions,
                has_seconds: false,
                seconds_multipliers: [],

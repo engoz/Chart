@@ -73,29 +73,22 @@ var error_callback = function(error) {
 
 // Take a single trade, and subscription record, return updated bar
 function updateBar(tieredQuote, sub) {
-    var lastBar = sub.lastBar
+    let lastBar = sub.lastBar
     let resolution = sub.resolution
-    
-    if (resolution.includes('D')) {
-     // 1 day in minutes === 1440
-     resolution = 1440
-    } else if (resolution.includes('W')) {
-     // 1 week in minutes === 10080
-     resolution = 10080 
-    }
-    
-   var coeff = resolution * 60000;
-    // console.log({coeff})
-    var rounded = Math.floor(tieredQuote.updateTime / coeff) * coeff
-    var lastBarSec = lastBar.time;
-    var _lastBar;
-    
+
+    let lastBarSec = lastBar.time
+    let quateTime = Helper.calculateTime(tieredQuote.updateTime);
+    let nextBarTime = Helper.calculateNextBarTime(lastBarSec,resolution); 
+    let _lastBar;
+    console.log("NextTime : " + new Date(nextBarTime));
+    console.log("QuateTime : " + new Date(quateTime));
+
     let midPrice = (new Number(tieredQuote.quotes.offer) + new Number(tieredQuote.quotes.bid)) /2;
     let quateVolume = tieredQuote.quotes.band;
-   if (rounded > lastBarSec) {
+   if ( quateTime >= nextBarTime) {
      // create a new candle, use last close as open **PERSONAL CHOICE**
      _lastBar = {
-      time: rounded,
+      time: nextBarTime,
       open: midPrice,
       high: midPrice,
       low: midPrice,
@@ -138,7 +131,7 @@ function parseQuate(obj) {
         symbol : array[0],
         productId : array[1],
         brokerId : array[2],
-        updateTime : Helper.barTime(array[3]),
+        updateTime : Helper.calculateTime(array[3]),
         valueDate : array[4],  //valueDate != null ? valueDate.getTime() : 0
         indicative : array[5], //indicative ? "1" : "0"
         calculated : array[6], //calculated ? "1" : "0"

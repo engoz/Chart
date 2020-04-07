@@ -8,11 +8,13 @@ export default {
 		return new Promise((resolve, reject) => {
 
 			let productId = Helper.findProductId(symbolInfo.name);
-			var toDate = new Date(to);
-			var fromDate = new Date(from);
+			var toDate = Helper.calculateTime(to);
+			var fromDate = Helper.calculateTime(from);
 			var days = 25;
 			
-			let history_url = Helper.restUrl + "/" + productId + "/chartData/FIFTEEN_MINUTES/" + 100;
+			let frequency = Helper.getFrequency(resolution);	
+
+			let history_url = Helper.restUrl + "/" + productId + "/chartData/"+frequency+ "/"+ 100;
 			let headers = new Headers();
 			headers.append('Content-Type', 'text/json');
 			headers.append('username', Helper.username);
@@ -28,7 +30,7 @@ export default {
 						var bars = data.map(bar => {
 							//	if (bar.time >= from && bar.time < to) {
 							var b = {
-								time: Helper.barTime(bar.chartData.updateTime),
+								time: Helper.calculateTime(bar.chartData.updateTime),
 								low: (bar.chartData.lowAsk + bar.chartData.lowBid)/2 ,
 								high: (bar.chartData.highAsk + bar.chartData.highBid)/2 ,
 								open: (bar.chartData.openAsk + bar.chartData.openBid)/2,
