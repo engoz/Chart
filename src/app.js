@@ -25,11 +25,14 @@ export default class OurDataFeed {
     }
     resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback) {
 
+        let sym = Helper.findSymbol(symbolName);
+
+
         var symbol_stub = {
-            name: symbolName,
-            ticker: symbolName,
+            name: sym.symbol,
+            ticker: sym.ticker,
             format: 'price',
-            description: symbolName,
+            description: sym.description,
             type: 'Currency',
             session: '24x7',
             timezone:  'Europe/Istanbul',
@@ -37,11 +40,12 @@ export default class OurDataFeed {
             minmov: 1,
             pricescale: 100000, //dynamic
             has_no_volume: true,
+            supports_time : true,
             //has_weekly_and_monthly: false,
             minmov2: 0,
             //    fractional: false,
             has_intraday: true,
-            intraday_multipliers: ["1", "60"],
+            intraday_multipliers: ['1','60'],
             supported_resolution: Helper.supportedResolutions,
                has_seconds: false,
                seconds_multipliers: [],

@@ -4,43 +4,40 @@ export default {
 	history: history,
 
 	getBars: (symbolInfo, resolution, from, to, first, limit) => {
-		Helper.consoloYaz("==== **** GetBars cagrildi **** ====",false); 
+		Helper.consoloYaz("==== **** GetBars cagrildi **** ====", false);
 		return new Promise((resolve, reject) => {
-			fetch("history.json").
+
+			let productId = Helper.findProductId(symbolInfo.name);
+			var toDate = new Date(to);
+			var fromDate = new Date(from);
+			var days = 25;
+			
+			let history_url = Helper.restUrl + "/" + productId + "/chartData/FIFTEEN_MINUTES/" + 100;
+			let headers = new Headers();
+			headers.append('Content-Type', 'text/json');
+			headers.append('username', Helper.username);
+		
+			fetch(history_url, { method: 'GET', headers: headers }).
 				then(response => response.json()).then(data => {
 					if (data && data === 'undefined') {
 						console.error('Arbitarage Error')
 						return []
 					}
-					
-					var date = new Date();
-					var yesterday = date.setDate(date.getDate() - 1);	
-					var dayCount = 1440;
-					data = [];
-					for (let i=1; i<=dayCount; i++){
-						var d = {time: Helper.barTime(yesterday+(i*60000)),
-						low: Math.random()*1+5,
-						high: Math.random()*1+6,
-						open: Math.random()*2+5,
-						close: Math.random()*2+5,
-						volume: 100
-						}
-						data.push(d);
-					}
+
 					if (data.length > 0) {
 						var bars = data.map(bar => {
-						//	if (bar.time >= from && bar.time < to) {
-								bars = {
-									time: Helper.barTime(bar.time),
-									low: bar.low,
-									high: bar.high,
-									open: bar.open,
-									close: bar.close,
-									volume: bar.volume
-								}
-								return bars;
-						//	}
-						})
+							//	if (bar.time >= from && bar.time < to) {
+							var b = {
+								time: Helper.barTime(bar.chartData.updateTime),
+								low: (bar.chartData.lowAsk + bar.chartData.lowBid)/2 ,
+								high: (bar.chartData.highAsk + bar.chartData.highBid)/2 ,
+								open: (bar.chartData.openAsk + bar.chartData.openBid)/2,
+								close: (bar.chartData.closeAsk + bar.chartData.closeBid)/2,
+								volume: 0
+							}
+							return b;
+							//	}
+						});
 						if (first) {
 							var lastBar = bars[bars.length - 1]
 							history[symbolInfo.name] = { lastBar: lastBar }

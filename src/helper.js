@@ -1,10 +1,9 @@
-let restUrl = 'http://10.34.10.207:8080/rest/products';
-
-let username = 'test2';
-let password = '';
+export const username = 'test2';
+export const password = '';
 export const socketUsername = 'user';
 export const socketPassword = 'password';
 export const socketUrl = "ws://10.34.10.209:61615";
+export const restUrl = "http://10.34.10.207:8080/rest/products";
 export const ourExchanges = [{value:'Arbitrage', name:'Arbitrage',desc:'Arbitrage'}];
 export const ourSymbols = [];
 export const ourCurrency = [{ name: "Currency", value: "Currency" }];
@@ -42,12 +41,31 @@ export function barTime(barTime) {
 	return date.getTime() / 1000;
 }
 
+
 export function findChannel(symbol){
     const res = ourSymbolsChannel.filter(s => {
         const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
         return isSymbol;
     } )
     return res[0].channel;
+}
+
+
+export function findProductId(symbol){
+    const res = ourSymbolsChannel.filter(s => {
+        const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
+        return isSymbol;
+    } )
+    return res[0].pId;
+}
+
+
+export function findSymbol(symbol){
+    const res = ourSymbolsChannel.filter(s => {
+        const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
+        return isSymbol;
+    } )
+    return res[0];
 }
 
 export function consoloYaz(mesaj, tick){
@@ -62,7 +80,7 @@ async function getProducts(){
     headers.append('Content-Type', 'text/json');
     headers.append('username', username);     
     try {
-    const response = await fetch(restUrl, {method:'GET',headers: headers,});
+    const response = await fetch(restUrl, {method:'GET',headers: headers});
     return response.json();
     }catch(error){
             throw new Error(` servicium request : ${error.status}`);     

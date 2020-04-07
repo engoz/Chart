@@ -5,7 +5,7 @@ var serviciumSocket = require('stompjs');
 const channelToSubscription = new Map();
 var socketClient;
 
-export function subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback) {
+export function  subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback) {
         
         var  client  = serviciumSocket.client(Helper.socketUrl);  
              
@@ -75,41 +75,46 @@ var error_callback = function(error) {
 function updateBar(tieredQuote, sub) {
     var lastBar = sub.lastBar
     let resolution = sub.resolution
+    
     if (resolution.includes('D')) {
      // 1 day in minutes === 1440
      resolution = 1440
     } else if (resolution.includes('W')) {
      // 1 week in minutes === 10080
-     resolution = 10080
+     resolution = 10080 
     }
-   var coeff = resolution * 60
+    
+   var coeff = resolution * 60000;
     // console.log({coeff})
     var rounded = Math.floor(tieredQuote.updateTime / coeff) * coeff
     var lastBarSec = lastBar.time;
-    var _lastBar
+    var _lastBar;
     
+    let midPrice = (new Number(tieredQuote.quotes.offer) + new Number(tieredQuote.quotes.bid)) /2;
+    let quateVolume = tieredQuote.quotes.band;
    if (rounded > lastBarSec) {
      // create a new candle, use last close as open **PERSONAL CHOICE**
      _lastBar = {
       time: rounded,
-      open: lastBar.close,
-      high: lastBar.close,
-      low: lastBar.close,
-      close: tieredQuote.quotes.bid,
-      volume: tieredQuote.quotes.band
+      open: midPrice,
+      high: midPrice,
+      low: midPrice,
+      close: midPrice,
+      volume: quateVolume
      }
      
     } else {
      // update lastBar candle!
-     if (tieredQuote.quotes.bid< lastBar.low) {
-      lastBar.low = tieredQuote.quotes.bid
-     } else if (tieredQuote.quotes.bid > lastBar.high) {
-      lastBar.high = tieredQuote.quotes.bid;
-     }
-     
-     lastBar.volume = tieredQuote.quotes.band
-     lastBar.close  = tieredQuote.quotes.bid
-     _lastBar = lastBar
+     //if (tieredQuote.quotes.bid< lastBar.low) {
+     // lastBar.low = tieredQuote.quotes.bid
+     //} else if (tieredQuote.quotes.bid > lastBar.high) {
+     // lastBar.high = tieredQuote.quotes.bid;
+     //}
+     lastBar.low = Math.min(lastBar.low, midPrice);
+     lastBar.high = Math.max(lastBar.high, midPrice);
+     lastBar.volume = quateVolume;
+     lastBar.close  = midPrice;
+     _lastBar = lastBar;
     }
 
     Helper.consoloYaz("PRİCE  == " +_lastBar.close + " | " + _lastBar.high, + " | " + _lastBar.low, true);
