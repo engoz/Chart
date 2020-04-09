@@ -1,23 +1,27 @@
-import OurDataFeed from './app';
+import DataFeed from './app';
 import * as Helper from './helper';
 
 var sembol = 'USD/TRY';
 
-function initOnReady() {
+async function initOnReady() {
 
-    Helper.getOurExchanges();
+    const data = await Helper.getOurExchanges();
+   
+    if(data == false){
+        console.log("Not Laod Symbol and Excahnge")
+    }
 
     var widget = window.tvWidget = new TradingView.widget({
         // debug: true, // uncomment this line to see Library errors and warnings in the console
         fullscreen: true,
         autosize: true,
         symbol: sembol,
-        interval: '15',
+        interval: '10',
         container_id: "tv_chart_container",
         debug: false,
         //	BEWARE: no trailing slash is expected in feed URL
         //datafeed: new Datafeeds.UDFCompatibleDatafeed("https://demo_feed.tradingview.com"),
-        datafeed: new OurDataFeed(),
+        datafeed: DataFeed,
         library_path: "charting_library/",
         locale: Helper.getParameterByName('lang') || "en",
         timezone: 'Europe/Istanbul',

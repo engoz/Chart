@@ -9,7 +9,38 @@ export const ourSymbols = [];
 export const ourCurrency = [{ name: "Currency", value: "Currency" }];
 export const ourSymbolsChannel = [];
 export const supportedResolutions = ["1", "3", "5", "15", "30", "60", "D", "W","M"];
+export const one_day =1000*60*60*24;
 
+export async function makeApiRequest(symbolInfo, resolution, from, to) {
+	try {
+
+        let productId = findProductId(symbolInfo.name);
+        var toDate = calculateTime2(to);
+        var fromDate = calculateTime2(from);
+
+        var diff = toDate - fromDate;
+
+        var days = Math.round(diff/one_day);
+                   
+        console.log("toDate : " + new Date(toDate));
+        console.log("FromDate : " + new Date(fromDate));
+        
+        let frequency = getFrequency(resolution);	
+
+        let history_url = restUrl + "/" + productId + "/chartData/"+frequency+ "/"+ days;
+        let headers = new Headers();
+        headers.append('Content-Type', 'text/json');
+        headers.append('username', username);
+        var start = new Date().getTime();    
+		const response = await fetch(history_url, { method: 'GET', headers: headers });
+        var jsonData = response.json();
+        var end = new Date().getTime();
+        console.log("Historical Data Api Call Time = " + (end - start));
+        return jsonData;
+	} catch (error) {
+		throw new Error(`Historical Data request error: ${error.status}`);
+	}
+}
 
 export const ourConfig = {
     supported_resolutions: supportedResolutions,
@@ -20,11 +51,16 @@ export const ourConfig = {
     // supports_time:true
 };
 
-export function getOurExchanges() {
+export async function getOurExchanges() {
+    var start = new Date().getTime();    
     getProducts().then(
         json => {
             parseProductsToExcahnge(json);
+            var end = new Date().getTime();
+            console.log("OurExchange and Product Api Call Time = " + (end - start));
+            return true;
         }).catch(err => { return err; });
+        return false;
 }
 
 export function getParameterByName(name) {
@@ -62,7 +98,7 @@ export function getFrequency(resolution) {
 }
 
 export function calculateNextBarTime(barTime,resolution) {
-    let date = new Date(barTime * 1000);
+    const date = new Date(barTime);
     //date.setHours(date.getHours() + 3);
     switch (resolution) {
         case "1":
@@ -86,7 +122,6 @@ export function calculateNextBarTime(barTime,resolution) {
         case "60":
             date.setHours(date.getHours() + 1);
             break; 
-            break;
         case "1D":
             date.setDate(date.getDate() + 1);
             break; 
@@ -97,67 +132,22 @@ export function calculateNextBarTime(barTime,resolution) {
             date.setDate(date.getDate() + 30);
             break; 
     }
-  
-    return date.getTime() / 1000;
+    //date.setHours(date.getHours() + 3);
+    return date.getTime();
    
 }
 
-function getDateWithResoulution(date,resolution){
-    let minutes,d;
-
-    switch (resolution) {
-        case "1":
-            minutes = 1 * 60 * 1000; // convert 1 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d; 
-        case "3":
-            minutes = 3 * 60 * 1000; // convert 3 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d;      
-        case "5":
-            minutes = 5 * 60 * 1000; // convert 5 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d;   
-        case "10":
-            minutes = 10 * 60 * 1000; // convert 10 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d; 
-        case "15":
-            minutes = 15 * 60 * 1000; // convert 15 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d; 
-        case "30":
-            minutes = 30 * 60 * 1000; // convert 30 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d;
-        case "60":
-            minutes = 60 * 60 * 1000; // convert 15 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d;
-        case "1D":
-            minutes = 24 * 60 * 60 * 1000; // convert 15 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d;
-        case "1W":
-            minutes = 7 * 24 * 60 * 60 * 1000; // convert 15 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d;
-        case "1M":
-            minutes = 30 * 24 * 60 * 60 * 1000; // convert 15 minutes to milliseconds
-            d = new Date(date.getTime() + minutes);
-            return d;
-    }
+export function calculateTime2(barTime) {
+    const date = new Date(barTime *1000);
+    date.setHours(date.getHours() + 3);
+    return date.getTime();
 }
-
-
-
 
 export function calculateTime(barTime) {
-    const date = new Date(barTime * 1000);
+    const date = new Date(barTime *1000);
     date.setHours(date.getHours() + 3);
-    return date.getTime() / 1000;
+    return date.getTime() /1000;
 }
-
 
 export function findChannel(symbol) {
     const res = ourSymbolsChannel.filter(s => {
@@ -177,7 +167,7 @@ export function findProductId(symbol) {
 }
 
 
-export function findSymbol(symbol) {
+export async function findSymbol(symbol) {
     const res = ourSymbolsChannel.filter(s => {
         const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
         return isSymbol;

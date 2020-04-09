@@ -1,23 +1,22 @@
 import * as Helper from './helper';
-import HistoryProvider from './history';
 
 var serviciumSocket = require('stompjs');
 const channelToSubscription = new Map();
-var socketClient;
 
-export function  subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback) {
+const subscriptionMap = new Map();
+export function  subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback,lastBar) {
         
-        var  client  = serviciumSocket.client(Helper.socketUrl);  
-             
-        socketClient = client;
-        var destination = Helper.findChannel(symbolInfo.name);
-
-        let subscriptionItem = channelToSubscription.get(destination);
+        
+    
+        let  client  = serviciumSocket.client(Helper.socketUrl); 
+        let destination = Helper.findChannel(symbolInfo.name);
 
         const handler = {
             id: subscribeUID,
             callback: onRealtimeCallback,
         };
+
+        let subscriptionItem = channelToSubscription.get(subscribeUID);
 
         if (subscriptionItem) {
             // daha once subscripe olmus
@@ -25,96 +24,102 @@ export function  subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, s
             return;
         }
 
-        var sub = {
+        subscriptionItem = {
             subscribeUID,
             resolution,
             symbolInfo,
-            lastBar: HistoryProvider.history[symbolInfo.name].lastBar,
+            lastBar,
             handlers: [handler],
         };
 
-        channelToSubscription.set(destination, sub);
+        channelToSubscription.set(subscribeUID, subscriptionItem);
         //console.log('[subscribeBars]: Subscribe to streaming. Channel:', destination);
  
         client.connect(Helper.socketUsername,Helper.socketPassword,()=>{
-            client.subscribe(destination,function(message) {
+            var subscription = client.subscribe(destination,function(message) {
                 var tieredQuote = convertTiredQuote(message.body);
-                var subscription = channelToSubscription.get(destination);
-                if (subscription === undefined || tieredQuote.updateTime < subscription.lastBar.time / 1000 )  {
+                var subscriptionSymbol = channelToSubscription.get(subscribeUID);
+                if (subscriptionSymbol === undefined)  {
                     return;
                 }
-                var _lastBar = updateBar(tieredQuote,subscription);
-                subscription.handlers.forEach(handler => handler.callback(_lastBar));
-                subscription.lastBar = _lastBar;
-                Helper.consoloYaz("****** Subscribe == " +subscribeUID,true);   
+              //  var bar = updateBar(tieredQuote, subscription);
+
+                // ---------- Begin Calculate Bar --------------- //
+                
+                const lastBar = subscriptionSymbol.lastBar
+                const quateTime = tieredQuote.updateTime;
+                const nextBarTime = Helper.calculateNextBarTime(lastBar.time,resolution);
+                    
+                console.log("LastTime : " + new Date(lastBar.time));
+                console.log("NextTime : " + new Date(nextBarTime));
+                console.log("QuateTime : " + new Date(quateTime));
+            
+                const midPrice = (new Number(tieredQuote.quotes.offer) + new Number(tieredQuote.quotes.bid)) /2;
+                const quateVolume = tieredQuote.quotes.band;
+                let bar;    
+
+               if ( quateTime >= nextBarTime) {
+                 // create a new candle, use last close as open **PERSONAL CHOICE**
+                bar = {
+                  time: nextBarTime,
+                  open: midPrice,
+                  high: midPrice,
+                  low: midPrice,
+                  close: midPrice,
+                  volume: quateVolume
+                 }
+                 console.log('[socket] Generate new bar', bar);
+                 
+                } else {
+                    bar = {
+                        ...lastBar,
+                        high: Math.max(lastBar.high, midPrice),
+                        low: Math.min(lastBar.low, midPrice),
+                        close: midPrice,
+                    };
+                    console.log('[socket] Update the latest bar by price', midPrice);
+                }
+            
+
+                // ---------- End Calculate Bar ----------------- //
+
+
+                subscriptionSymbol.lastBar = bar;
+                subscriptionSymbol.handlers.forEach(handler => handler.callback(bar));
+
             },
             {
                 id: subscribeUID,
                 'activemq.retroactive': true,
             }
             
-        );      
+        );  
+        
+        subscriptionMap.set(subscribeUID,subscription);
+
         },error_callback);
 }
-
-export function unsubscribeFromStream(subscribeUID){
-    if(socketClient != null && socketClient !== 'undefined'){
-        Helper.consoloYaz("****** UnSubscribe == " +subscribeUID,true);
-        socketClient.unsubscribe(subscribeUID);   
-    }else {
-        console.log(" Client NULL " );
-    } 
-}
-
 
 var error_callback = function(error) {
     Helper.consoloYaz("****** Subscribe error_callback == " +error,true);
 };
 
-// Take a single trade, and subscription record, return updated bar
-function updateBar(tieredQuote, sub) {
-    let lastBar = sub.lastBar
-    let resolution = sub.resolution
 
-    let lastBarSec = lastBar.time
-    let quateTime = Helper.calculateTime(tieredQuote.updateTime);
-    let nextBarTime = Helper.calculateNextBarTime(lastBarSec,resolution); 
-    let _lastBar;
-    console.log("NextTime : " + new Date(nextBarTime));
-    console.log("QuateTime : " + new Date(quateTime));
+export function unsubscribeFromStream(subscribeUID){
+    //let socketClient = socketClient.get('client');
+    
+    let subscripe = subscriptionMap.get(subscribeUID);
+    if(subscripe){
+        Helper.consoloYaz("****** UnSubscribe == " +subscribeUID,true);
 
-    let midPrice = (new Number(tieredQuote.quotes.offer) + new Number(tieredQuote.quotes.bid)) /2;
-    let quateVolume = tieredQuote.quotes.band;
-   if ( quateTime >= nextBarTime) {
-     // create a new candle, use last close as open **PERSONAL CHOICE**
-     _lastBar = {
-      time: nextBarTime,
-      open: midPrice,
-      high: midPrice,
-      low: midPrice,
-      close: midPrice,
-      volume: quateVolume
-     }
-     
-    } else {
-     // update lastBar candle!
-     //if (tieredQuote.quotes.bid< lastBar.low) {
-     // lastBar.low = tieredQuote.quotes.bid
-     //} else if (tieredQuote.quotes.bid > lastBar.high) {
-     // lastBar.high = tieredQuote.quotes.bid;
-     //}
-     lastBar.low = Math.min(lastBar.low, midPrice);
-     lastBar.high = Math.max(lastBar.high, midPrice);
-     lastBar.volume = quateVolume;
-     lastBar.close  = midPrice;
-     _lastBar = lastBar;
-    }
-
-    Helper.consoloYaz("PRİCE  == " +_lastBar.close + " | " + _lastBar.high, + " | " + _lastBar.low, true);
-    return _lastBar
-   }
-   
-
+        subscripe.unsubscribe();
+        subscriptionMap.delete(subscribeUID);
+        
+  
+    }else {
+        console.log(" Client NULL " );
+    } 
+}
 
 
 function convertTiredQuote(obj){
