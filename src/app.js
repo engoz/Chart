@@ -122,13 +122,23 @@ export default {
         Helper.consoloYaz('[unsubscribeBars]: Method call with subscribeUID:' + subscriberUID, true); 
         unsubscribeFromStream(subscriberUID)
     },
-    /*
+    
     calculateHistoryDepth : (resolution, resolutionBack, intervalBack) => {
         //optional
         Helper.consoloYaz("==== calculateHistoryDepth ====",false); 
-       return resolution < 60 ? { resolutionBack: 'D', intervalBack: '1' } : undefined
+        if(resolution < 30)
+        return { resolutionBack: 'D', intervalBack: '1' };
+        if(resolution >= 30 && resolution <= 60 ){
+            return { resolutionBack: 'D', intervalBack: '1' };
+        }else if(resolution === 'D'){
+            return { resolutionBack: 'D', intervalBack: '1' };
+        }if(resolution === 'M' ){
+            return { resolutionBack: 'M', intervalBack: '1' };
+        }else {
+            return undefined;
+        }
     }
-    
+    /*
     getMarks : (symbolInfo, startDate, endDate, onDataCallback, resolution) => {
         //optional
         Helper.consoloYaz("==== getMarks ====",false); 

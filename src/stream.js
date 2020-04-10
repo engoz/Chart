@@ -7,7 +7,6 @@ const subscriptionMap = new Map();
 export function  subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback,lastBar) {
         
         
-    
         let  client  = serviciumSocket.client(Helper.socketUrl); 
         let destination = Helper.findChannel(symbolInfo.name);
 

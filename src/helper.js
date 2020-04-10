@@ -15,19 +15,19 @@ export async function makeApiRequest(symbolInfo, resolution, from, to) {
 	try {
 
         let productId = findProductId(symbolInfo.name);
-        var toDate = calculateTime2(to);
-        var fromDate = calculateTime2(from);
+        let toDate = calculateTime2(to);
+        let fromDate = calculateTime2(from);
 
-        var diff = toDate - fromDate;
+        let diff = toDate - fromDate;
 
-        var days = Math.round(diff/one_day);
+        let days = Math.round(diff/one_day);
                    
         console.log("toDate : " + new Date(toDate));
         console.log("FromDate : " + new Date(fromDate));
         
         let frequency = getFrequency(resolution);	
 
-        let history_url = restUrl + "/" + productId + "/chartData/"+frequency+ "/"+ days;
+        let history_url = restUrl + "/" + productId + "/chartData/"+frequency+ "/"+ fromDate+"/"+toDate;
         let headers = new Headers();
         headers.append('Content-Type', 'text/json');
         headers.append('username', username);
@@ -168,6 +168,15 @@ export function findProductId(symbol) {
 
 
 export async function findSymbol(symbol) {
+
+    if(!(ourSymbolsChannel.length > 0)){
+        const data = await Helper.getOurExchanges();
+
+        if(data == false){
+            console.log("Not Laod Symbol and Excahnge")
+        }
+    }
+
     const res = ourSymbolsChannel.filter(s => {
         const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
         return isSymbol;
