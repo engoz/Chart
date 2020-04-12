@@ -8,16 +8,13 @@ export default {
 
 
     onReady : (callback) => {
-        Helper.consoloYaz("==== onReady call ====",true); 
+        console.log('[onReady]: Method call');
         setTimeout(() => callback(Helper.ourConfig));
     },
     searchSymbols: async (userInput, exchange, symbolType, onResultReadyCallback) => {
-        Helper.consoloYaz("==== searchSymbols call ====",true);
-       
-        // console.log(' Search Symbols :' + userInput);
-        // console.log(' Exchange = ' + exchange);
-        // console.log(' SymbolType = ' + symbolType);
-        const newSeymbols = Helper.ourSymbols.filter(symbol => {
+        console.log('[searchSymbols]: Method call');
+     
+        const newSeymbols = Helper.allProducts.filter(symbol => {
             const isFullSymbolContainsInput = symbol.full_name
                 .toLowerCase()
                 .indexOf(userInput.toLowerCase()) !== -1;
@@ -29,9 +26,15 @@ export default {
     },
     resolveSymbol: async(symbolName, onSymbolResolvedCallback, onResolveErrorCallback) => {
 
+        console.log('[resolveSymbol]: Method call', symbolName);
+   
+        const symbols = await Helper.getAllSymbols();
+        //const symbolItem = Helper.findSymbolFromArr(symbolName,symbols);
 
-        const symbolItem = await Helper.findSymbol(symbolName);
-
+        const symbolItem = symbols.find(({
+			full_name,
+        }) => full_name === symbolName);
+        
         if (!symbolItem) {
 			console.log('[resolveSymbol]: Cannot resolve symbol', symbolName);
 			onResolveErrorCallback('cannot resolve symbol');
@@ -48,7 +51,7 @@ export default {
             timezone:  'Europe/Istanbul',
             exchange: 'Arbitrage',
             minmov: 1,
-            pricescale: 100000, //dynamic
+            pricescale: Helper.getPriceScale(symbolItem.ticksize), //dynamic
             has_no_volume: true,
             supports_time : true,
             has_empty_bars : true,
@@ -65,7 +68,7 @@ export default {
             //   has_empty_bars : false,
             //   force_session_rebuild : true,
             //   has_no_volume : false,
-            volume_precision: 5, //dynamic
+            volume_precision: symbolItem.ticksize, //dynamic
             data_status: "streaming",
             //    expired: true,
             //    expiration_date : 0,
@@ -80,7 +83,7 @@ export default {
        
         try {
 
-			const data = await Helper.makeApiRequest(symbolInfo, resolution, from, to);
+			const data = await Helper.makeApiRequestForHistory(symbolInfo, resolution, from, to);
 			if (data.Response && data.Response === 'Error' || data.length === 0) {
 				console.log("response Hata");
 				onHistoryCallback([], {
@@ -99,15 +102,17 @@ export default {
                         close: (bar.chartData.closeAsk + bar.chartData.closeBid)/2,
 					}];
 		//		}
-			});
+            });
+        
 			if (firstDataRequest) {
 				lastBarsCache.set(symbolInfo.full_name, {
 					...bars[bars.length - 1],
-				});
+                });
 			}
 			console.log(`[getBars]: returned ${bars.length} bar(s)`);
 			onHistoryCallback(bars, {
-				noData: false,
+                noData: false,
+                nextTime: Helper.nextDays().getTime()
 			});
 		} catch (error) {
 			console.log('[getBars]: Get error', error);
@@ -127,13 +132,13 @@ export default {
         //optional
         Helper.consoloYaz("==== calculateHistoryDepth ====",false); 
         if(resolution < 30)
-        return { resolutionBack: 'D', intervalBack: '1' };
+        return { resolutionBack: 'D', intervalBack: '5' };
         if(resolution >= 30 && resolution <= 60 ){
-            return { resolutionBack: 'D', intervalBack: '1' };
+            return { resolutionBack: 'D', intervalBack: '5' };
         }else if(resolution === 'D'){
-            return { resolutionBack: 'D', intervalBack: '1' };
+            return { resolutionBack: 'D', intervalBack: '10' };
         }if(resolution === 'M' ){
-            return { resolutionBack: 'M', intervalBack: '1' };
+            return { resolutionBack: 'M', intervalBack: '30' };
         }else {
             return undefined;
         }

@@ -4,12 +4,13 @@ var serviciumSocket = require('stompjs');
 const channelToSubscription = new Map();
 
 const subscriptionMap = new Map();
-export function  subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback,lastBar) {
+export async function subscribeOnStream (symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback,lastBar) {
         
         
         let  client  = serviciumSocket.client(Helper.socketUrl); 
-        let destination = Helper.findChannel(symbolInfo.name);
+        let symbol = await Helper.findSymbol(symbolInfo.name);
 
+        let destination = symbol.channel;
         const handler = {
             id: subscribeUID,
             callback: onRealtimeCallback,
@@ -45,10 +46,20 @@ export function  subscribeOnStream(symbolInfo, resolution, onRealtimeCallback, s
 
                 // ---------- Begin Calculate Bar --------------- //
                 
-                const lastBar = subscriptionSymbol.lastBar
+                let lastBar = subscriptionSymbol.lastBar
                 const quateTime = tieredQuote.updateTime;
+                
+                if(lastBar === undefined || lastBar.time === undefined){
+                    lastBar = {time:quateTime};
+                }
+
+                let beforeTime = Helper.calculateBeforeBarTime(quateTime,resolution);
+
+                if(lastBar.time <= beforeTime ){
+                    lastBar.time = quateTime;
+                }
+                
                 const nextBarTime = Helper.calculateNextBarTime(lastBar.time,resolution);
-                    
                 console.log("LastTime : " + new Date(lastBar.time));
                 console.log("NextTime : " + new Date(nextBarTime));
                 console.log("QuateTime : " + new Date(quateTime));
@@ -129,8 +140,8 @@ function convertTiredQuote(obj){
 
 
 function parseQuate(obj) {
-    var array = obj.split("|");
     
+    var array = obj.split("|");
     var tieredQuote = {
         symbol : array[0],
         productId : array[1],

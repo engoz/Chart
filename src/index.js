@@ -5,11 +5,7 @@ var sembol = 'USD/TRY';
 
 async function initOnReady() {
 
-    const data = await Helper.getOurExchanges();
-   
-    if(data == false){
-        console.log("Not Laod Symbol and Excahnge")
-    }
+    
 
     var widget = window.tvWidget = new TradingView.widget({
         // debug: true, // uncomment this line to see Library errors and warnings in the console

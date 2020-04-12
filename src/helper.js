@@ -2,16 +2,17 @@ export const username = 'test2';
 export const password = '';
 export const socketUsername = 'user';
 export const socketPassword = 'password';
+//export const socketUrl = "ws://213.128.89.179:61612";
+//export const restUrl = "http://213.128.89.179:7532/rest/products";
 export const socketUrl = "ws://10.34.10.209:61615";
 export const restUrl = "http://10.34.10.207:8080/rest/products";
-export const ourExchanges = [{ value: 'Arbitrage', name: 'Arbitrage', desc: 'Arbitrage' }];
-export const ourSymbols = [];
-export const ourCurrency = [{ name: "Currency", value: "Currency" }];
-export const ourSymbolsChannel = [];
+export const allExchanges = [{ value: 'Arbitrage', name: 'Arbitrage', desc: 'Arbitrage' }];
+export const allProducts = [];
+export const symbolTypes = [{name: 'Currency',value: 'Currency'}];
 export const supportedResolutions = ["1", "3", "5", "15", "30", "60", "D", "W","M"];
 export const one_day =1000*60*60*24;
 
-export async function makeApiRequest(symbolInfo, resolution, from, to) {
+export async function makeApiRequestForHistory(symbolInfo, resolution, from, to) {
 	try {
 
         let productId = findProductId(symbolInfo.name);
@@ -33,7 +34,7 @@ export async function makeApiRequest(symbolInfo, resolution, from, to) {
         headers.append('username', username);
         var start = new Date().getTime();    
 		const response = await fetch(history_url, { method: 'GET', headers: headers });
-        var jsonData = response.json();
+        let jsonData = response.json();
         var end = new Date().getTime();
         console.log("Historical Data Api Call Time = " + (end - start));
         return jsonData;
@@ -42,26 +43,36 @@ export async function makeApiRequest(symbolInfo, resolution, from, to) {
 	}
 }
 
+
+async function makeApiRequestAllProducts() {
+    let headers = new Headers();
+    headers.append('Content-Type', 'text/json');
+    headers.append('username', username);
+    try {
+        const response = await fetch(restUrl, { method: 'GET', headers: headers });
+        const jsonData = response.json();
+        return jsonData;
+    } catch (error) {
+        throw new Error(` servicium request : ${error.status}`);
+    }
+}
+
+export async function getAllSymbols() {
+    //
+    const data = await makeApiRequestAllProducts();
+    const symbols = parseResultProducts(data);
+    return symbols;
+}
+
 export const ourConfig = {
     supported_resolutions: supportedResolutions,
-    exchanges: ourExchanges,
-    symbols_types: ourCurrency
+    exchanges: allExchanges,
+    symbols_types: symbolTypes
     // supports_marks: false,
     // supports_timescale_marks: true,
     // supports_time:true
 };
 
-export async function getOurExchanges() {
-    var start = new Date().getTime();    
-    getProducts().then(
-        json => {
-            parseProductsToExcahnge(json);
-            var end = new Date().getTime();
-            console.log("OurExchange and Product Api Call Time = " + (end - start));
-            return true;
-        }).catch(err => { return err; });
-        return false;
-}
 
 export function getParameterByName(name) {
     name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
@@ -96,6 +107,22 @@ export function getFrequency(resolution) {
             return 'TICK_BY_TICK';
     }
 }
+
+export function nextDays(){
+    var date = new Date();
+    console.log(date);
+    var d = date.getDay();
+    if (d == 1) {
+        date.setDate(date.getDate() -3);
+    }else {
+        if(d != 0 || d != 6 ){
+            date.setDate(date.getDate() -1);
+        } 
+    }
+    date.setHours(23, 59, 59, 999);
+    return date;
+}
+
 
 export function calculateNextBarTime(barTime,resolution) {
     const date = new Date(barTime);
@@ -137,6 +164,55 @@ export function calculateNextBarTime(barTime,resolution) {
    
 }
 
+export function calculateBeforeBarTime(barTime,resolution) {
+    const date = new Date(barTime);
+    //date.setHours(date.getHours() + 3);
+    switch (resolution) {
+        case "1":
+            date.setMinutes(date.getMinutes() - 1);
+            break;   
+        case "3":
+            date.setMinutes(date.getMinutes() - 3);
+            break;        
+        case "5":
+            date.setMinutes(date.getMinutes() - 5);
+            break; 
+        case "10":
+            date.setMinutes(date.getMinutes() - 10);
+            break; 
+        case "15":
+            date.setMinutes(date.getMinutes() - 15);
+            break; 
+        case "30":
+            date.setMinutes(date.getMinutes() - 30);
+            break; 
+        case "60":
+            date.setHours(date.getHours() - 1);
+            break; 
+        case "1D":
+            date.setDate(date.getDate() - 1);
+            break; 
+        case "1W":
+            date.setDate(date.getDate - 7);
+            break; 
+        case "1M":
+            date.setDate(date.getDate() - 30);
+            break; 
+    }
+    //date.setHours(date.getHours() + 3);
+    return date.getTime();
+   
+}
+
+export function getPriceScale(ticksize){
+    let scale = 1;
+    let multiplier = 10;
+    for(let i=0; i<=ticksize; i++){
+        scale = scale * multiplier;
+    }
+    return scale;
+}
+
 export function calculateTime2(barTime) {
     const date = new Date(barTime *1000);
     date.setHours(date.getHours() + 3);
@@ -149,40 +225,40 @@ export function calculateTime(barTime) {
     return date.getTime() /1000;
 }
 
-export function findChannel(symbol) {
-    const res = ourSymbolsChannel.filter(s => {
-        const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
-        return isSymbol;
-    })
-    return res[0].channel;
+export function findProductId(symbolName) {
+    const symbolItem = allProducts.find(({
+        full_name,
+    }) => full_name === symbolName);
+    return symbolItem.productId;
 }
 
-
-export function findProductId(symbol) {
-    const res = ourSymbolsChannel.filter(s => {
+export function findProductIdOld(symbol) {
+    const res = allProducts.filter(s => {
         const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
         return isSymbol;
     })
-    return res[0].pId;
+    return res[0].productId;
+}
+
+export async function findSymbolFromArr(symbolName, symbols) {
+    const res = symbols.filter(s => {
+            const isSymbol = s.symbol.toLowerCase().indexOf(symbolName.toLowerCase()) !== -1;
+            return isSymbol;   
+    })
+    return res[0];
+    
 }
 
 
 export async function findSymbol(symbol) {
-
-    if(!(ourSymbolsChannel.length > 0)){
-        const data = await Helper.getOurExchanges();
-
-        if(data == false){
-            console.log("Not Laod Symbol and Excahnge")
-        }
-    }
-
-    const res = ourSymbolsChannel.filter(s => {
-        const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
-        return isSymbol;
+    const res = allProducts.filter(s => {
+            const isSymbol = s.symbol.toLowerCase().indexOf(symbol.toLowerCase()) !== -1;
+            return isSymbol;   
     })
     return res[0];
+    
 }
+
 
 export function consoloYaz(mesaj, tick) {
     if (tick) {
@@ -190,52 +266,79 @@ export function consoloYaz(mesaj, tick) {
     }
 }
 
-
-async function getProducts() {
-    let headers = new Headers();
-    headers.append('Content-Type', 'text/json');
-    headers.append('username', username);
-    try {
-        const response = await fetch(restUrl, { method: 'GET', headers: headers });
-        return response.json();
-    } catch (error) {
-        throw new Error(` servicium request : ${error.status}`);
-    }
-}
-
-function parseProductsToExcahnge(prods) {
+function parseResultProducts(prods) {
     var obj = prods;
     var products = obj.products;
     var synthetic = obj.syntheticProducts;
+    allProducts.length = 0;
     for (let index in products) {
         let prodObj = products[index];
         let product = prodObj.product;
+        let arb;
         if (product.channelName != null || typeof product.channelName !== "undefined") {
-            createSymbols(product);
+         arb = parseSymbols(product);
         }
-
+        if(arb !== undefined){
+        allProducts.push(arb);
+        }
     }
     for (let index in synthetic) {
         let syntObj = synthetic[index];
         let product = syntObj.syntheticProduct;
+        let synt;
         if (product.channelName != null || typeof product.channelName !== "undefined") {
-            createSymbols(product);
+        synt = parseSymbols(product);
         }
-
+        if(synt !== undefined){
+        allProducts.push(synt);
+        }
     }
+    return allProducts;
 }
 
 
-function createSymbols(product) {
-    var symb = { symbol: product.symbol, full_name: product.symbol, description: product.descriptionTR, ticker: product.symbol, type: ourCurrency[0].name };
-    ourSymbols.push(symb);
-    createChannel(product);
+function parseSymbols(product) {
+    var symb = { 
+        symbol: product.symbol, 
+        full_name: product.symbol, 
+        description: product.descriptionTR, 
+        ticker: product.symbol, 
+        ticksize:product.tickSize, 
+        type: symbolTypes[0].name,
+        productId: product.productId, 
+        channel: '/topic/' + product.channelName };
+    return symb;
 }
 
-function createChannel(product) {
-    var channel = { symbol: product.symbol, pId: product.productId, channel: '/topic/' + product.channelName };
-    ourSymbolsChannel.push(channel);
-}
 
-
-
+/*
+export const ourSymbols = [
+        {
+            symbol: "EUR/TRY",
+            full_name: "EUR/TRY",
+            description: "EURO TURKISH LIRA",
+            ticker:"EUR/TRY",
+            type:"Currency",
+            productId: 7008,
+            exchanges:'Arbitrage',
+        },
+        {
+            symbol: "EUR/USD",
+            full_name: "EUR/USD",
+            description: "EURO DOLAR",
+            ticker:"EUR/USD",
+            type:"Currency",
+            productId: 7009,
+            exchanges:'Arbitrage',
+            },
+            {
+            symbol: "USD/TRY",
+            full_name: "USD/TRY",
+            description: "USD TURKISH LIRA",
+            ticker:"USD/TRY",
+            type:"Currency",
+            exchanges:'Arbitrage',
+            productId: 7007,
+            }
+];
+*/
